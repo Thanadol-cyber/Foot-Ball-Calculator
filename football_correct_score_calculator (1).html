@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>โปรแกรมวางแผนและคำนวณผลฟุตบอล (Correct Score Calculator)</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts & FontAwesome for Premium UI -->
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Sarabun', sans-serif;
+    }
+    /* Custom Scrollbar for better appearance */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1e293b;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen py-6 px-4">
+
+  <div class="max-w-6xl mx-auto">
+    
+    <!-- HEADER PANEL -->
+    <header class="bg-gradient-to-r from-slate-900 to-slate-800 border border-slate-700/50 rounded-2xl p-6 mb-6 shadow-2xl">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 class="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300 flex items-center gap-3">
+            <i class="fa-solid fa-calculator-combined text-yellow-400"></i>
+            โปรแกรมคำนวณคะแนนที่ถูกต้อง (Correct Score Plan)
+          </h1>
+          <p class="text-slate-400 text-sm mt-1">เครื่องมือคำนวณกระจายความเสี่ยง กำไร-ขาดทุนสุทธิ และอัตราต่อรองฟุตบอลแบบเรียลไทม์</p>
+        </div>
+        <div class="flex items-center gap-2 bg-slate-950/60 p-1.5 rounded-lg border border-slate-800">
+          <button onclick="resetAll()" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 transition text-white rounded-md text-sm font-medium flex items-center gap-2">
+            <i class="fa-solid fa-rotate-left"></i> ล้างข้อมูลใหม่หมด
+          </button>
+        </div>
+      </div>
+
+      <!-- Match Info Inputs -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-800">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-amber-400 mb-1.5">ทีมเหย้า (ทีมต่อ)</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+              <i class="fa-solid fa-shield-halved text-amber-500/80"></i>
+            </span>
+            <input type="text" id="homeTeam" value="ทีมเหย้า (เจ้าบ้าน)" 
+                   class="w-full bg-slate-950 border border-slate-700 rounded-xl py-2.5 pl-10 pr-4 text-white focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition"
+                   oninput="updateMatchTitle()">
+          </div>
+        </div>
+        <div class="flex items-end justify-center pb-2.5">
+          <span class="text-slate-500 font-bold text-sm bg-slate-950 px-4 py-1.5 rounded-full border border-slate-800">VS</span>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">ทีมเยือน (ทีมรอง)</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+              <i class="fa-solid fa-shield-cat text-blue-400/80"></i>
+            </span>
+            <input type="text" id="awayTeam" value="ทีมเยือน" 
+                   class="w-full bg-slate-950 border border-slate-700 rounded-xl py-2.5 pl-10 pr-4 text-white focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500 transition"
+                   oninput="updateMatchTitle()">
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- LIVE MATCH STATUS BAR -->
+    <div class="bg-slate-900 border border-slate-800 px-6 py-3.5 rounded-xl mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <span class="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span class="text-sm font-semibold text-slate-300">ตารางวางแผนคู่อุ่นเครื่อง: </span>
+        <span id="matchDisplayTitle" class="text-sm font-bold text-amber-300">ทีมเหย้า (เจ้าบ้าน) vs ทีมเยือน</span>
+      </div>
+      <div class="flex items-center gap-4 text-xs md:text-sm text-slate-400">
+        <div>เงินลงทุนสะสม: <span id="totalInvestmentLabel" class="text-white font-bold">0.00</span> บาท</div>
+      </div>
+    </div>
+
+    <!-- MAIN GRID CALCULATOR -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      
+      <!-- Grid Area (Left & Middle Column - Take 2/3 of space on desktop) -->
+      <div class="lg:col-span-2 space-y-6">
+        
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+          <div class="bg-slate-800/80 px-6 py-4 border-b border-slate-700/50 flex items-center justify-between">
+            <h2 class="font-bold text-base text-slate-200 flex items-center gap-2">
+              <i class="fa-solid fa-list-ol text-amber-500"></i>
+              คะแนนที่ถูกต้อง (Correct Score)
+            </h2>
+            <div class="flex items-center gap-2">
+              <span class="text-xs bg-slate-950 px-2.5 py-1 text-slate-400 rounded-full border border-slate-800">สกอร์ถูกล็อกไว้</span>
+            </div>
+          </div>
+
+          <div class="p-6">
+            <p class="text-xs text-slate-400 mb-4 italic">💡 คำแนะนำ: สกอร์ด้านบนเป็นค่าล็อกตามตาราง สามารถระบุอัตราจ่าย (ตัวคูณด้านล่าง) และจำนวนเงินพนันของคุณได้เลย</p>
+            
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3" id="scoresGrid">
+              <!-- Score Cards will be injected here dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- QUICK TOOLS BAR -->
+        <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 flex flex-wrap gap-4 items-center justify-between">
+          <div class="space-y-1">
+            <h4 class="text-sm font-semibold text-amber-400">⚡ ทางลัดใส่เงินเดิมพันแบบเร็ว</h4>
+            <p class="text-xs text-slate-400">ระบุเงินเพื่อใส่ลงไปในช่องทั้งหมดที่มียอด เพื่อคำนวณแผนแบบเร็ว</p>
+          </div>
+          <div class="flex gap-2 items-center">
+            <input type="number" id="quickBetAmount" placeholder="เช่น 100" class="w-24 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:border-amber-400">
+            <button onclick="applyQuickBet()" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 transition text-slate-950 text-xs font-bold rounded-lg">
+              ใส่เงินช่องเดิมพันทั้งหมด
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- SIDEBAR SUMMARY & PREVIEW (Right Column - Take 1/3 of space) -->
+      <div class="space-y-6">
+        
+        <!-- Summary Dashboard Card -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl sticky top-6">
+          <h2 class="font-bold text-lg text-amber-400 flex items-center gap-2 mb-4 pb-4 border-b border-slate-800">
+            <i class="fa-solid fa-chart-pie"></i> สรุปข้อมูลการวางแผนเล่น
+          </h2>
+
+          <div class="space-y-4">
+            
+            <!-- Dashboard stats -->
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
+                <span class="text-slate-400 text-xs block mb-1">ยอดรวมเดิมพัน</span>
+                <span class="text-lg font-bold text-white"><span id="sumTotalBet">0</span> ฿</span>
+              </div>
+              <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
+                <span class="text-slate-400 text-xs block mb-1">จำนวนที่เดิมพันไว้</span>
+                <span class="text-lg font-bold text-amber-400"><span id="sumSelectedCount">0</span> ช่อง</span>
+              </div>
+            </div>
+
+            <!-- Choose actual outcome simulator -->
+            <div class="bg-slate-950/50 p-4 rounded-xl border border-slate-800">
+              <label class="block text-xs font-semibold text-slate-300 mb-2">
+                🎯 เลือกทดลอง "ผลลัพธ์ที่เกิดขึ้นจริง" เพื่อจำลองผลตอบแทน
+              </label>
+              <select id="simulatedOutcome" onchange="calculateSummary()" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-2.5 text-sm focus:outline-none focus:border-amber-400">
+                <!-- Dropdown options will be populated dynamically -->
+              </select>
+            </div>
+
+            <!-- Simulated Results Card -->
+            <div id="simResultBox" class="bg-slate-950/80 p-5 rounded-xl border border-slate-800 flex flex-col justify-between min-h-[140px] transition duration-300">
+              <div class="text-center py-4 text-slate-500 text-sm" id="emptySimMessage">
+                ยังไม่มีการเลือกลงเงินเดิมพัน หรือยังไม่มีผลชนะจริงเกิดขึ้น
+              </div>
+              <div class="hidden space-y-3" id="activeSimDetails">
+                <div class="flex justify-between items-center text-sm">
+                  <span class="text-slate-400">ผลที่จำลอง:</span>
+                  <span id="simScoreLabel" class="font-bold bg-slate-800 px-2 py-0.5 rounded text-white text-xs">1:0</span>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                  <span class="text-slate-400">เงินลงทุนทั้งหมด:</span>
+                  <span class="font-semibold" id="simTotalBetVal">0.00 ฿</span>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                  <span class="text-slate-400">เงินรางวัลที่จะได้รับ:</span>
+                  <span class="font-semibold text-emerald-400" id="simPayoutVal">0.00 ฿</span>
+                </div>
+                <div class="border-t border-slate-800 pt-3 flex justify-between items-center">
+                  <span class="font-bold text-sm text-slate-300">กำไร / ขาดทุน สุทธิ:</span>
+                  <span class="text-lg font-black" id="simNetVal">0.00 ฿</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- List of bets taken (Dutching Summary) -->
+            <div class="mt-4">
+              <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2 flex items-center justify-between">
+                <span>ตารางความคุ้มค่ากรณีสกอร์ชนะ (Dutching Profitability)</span>
+              </h3>
+              <div class="max-h-56 overflow-y-auto space-y-1.5 pr-1" id="dutchingReport">
+                <p class="text-xs text-slate-500 text-center py-4 bg-slate-950/40 rounded-lg">ไม่มีการเดิมพันที่ได้กำไรในขณะนี้</p>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- INSTRUCTION & EXPLANATION FOOTER -->
+    <footer class="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 mt-6">
+      <h3 class="font-bold text-sm text-slate-200 mb-3 flex items-center gap-2">
+        <i class="fa-solid fa-circle-info text-blue-400"></i>
+        คำอธิบายการทำงานและเครื่องมือในการคำนวณ
+      </h3>
+      <ul class="text-xs text-slate-400 space-y-2 list-disc pl-5">
+        <li><strong>การแก้ไขข้อมูล:</strong> คุณสามารถแก้ไขอัตราจ่าย (Odds) ได้ตามต้องการหากราคาตามเว็ปไซค์ของคุณมีการปรับเปลี่ยน</li>
+        <li><strong>การวิเคราะห์ความคุ้มค่าแบบกระจายสกอร์ (Dutching):</strong> เมื่อคุณใส่เดิมพันหลายช่อง ระบบจะนำค่าใช้จ่ายทั้งหมดมารวมกัน และแสดงในแต่ละกล่องว่า "หากออกสกอร์นี้ จะเหลือกำไรสุทธิเท่าไหร่หลังหักลบยอดของช่องอื่นๆ ไปแล้ว" ซึ่งจะช่วยให้คุณมองเห็นจุดบอดที่ไม่ทำกำไรทันที</li>
+        <li><strong>การจำลองผลบอลจริง:</strong> สามารถกดสลับดูผลได้เพื่อดูว่าท้ายที่สุดแล้วหากออกสกอร์ใดสกอร์หนึ่ง คุณจะได้เงินเท่าไหร่ เพื่อเป็นไปตามเป้าหมายแผนงาน</li>
+      </ul>
+    </footer>
+
+  </div>
+
+  <script>
+    // Initial Data updated accurately based on user's second uploaded image (image_727486.png)
+    const initialScores = [
+      // Row 1
+      { score: '0:0', odds: 10.0 },
+      { score: '0:1', odds: 9.55 },
+      { score: '0:2', odds: 18.1 },
+      { score: '0:3', odds: 58.6 },
+      { score: '0:4', odds: 225.1 },
+      { score: '1:0', odds: 7.6 },   // Updated from 7.7
+      { score: '1:1', odds: 5.77 },
+      { score: '1:2', odds: 10.9 },
+      { score: '1:3', odds: 34.3 },  // Updated from 32.5
+      { score: '1:4', odds: 120.0 },
+      { score: '2:0', odds: 11.0 },
+      { score: '2:1', odds: 7.8 },   // Updated from 9.50
+      { score: '2:2', odds: 11.8 },  // Updated from 14.00
+      // Row 2
+      { score: '2:3', odds: 40.0 },
+      { score: '2:4', odds: 145.0 },
+      { score: '3:0', odds: 23.0 },
+      { score: '3:1', odds: 16.0 },
+      { score: '3:2', odds: 22.6 },
+      { score: '3:3', odds: 49.6 },  // Updated from 45.1
+      { score: '3:4', odds: 180.1 },
+      { score: '4:0', odds: 49.6 },
+      { score: '4:1', odds: 37.9 },
+      { score: '4:2', odds: 55.0 },
+      { score: '4:3', odds: 103.6 },
+      { score: '4:4', odds: 175.6 }, // Added from new image
+      { score: 'อื่นๆ', odds: 40.0 }  // Added from new image
+    ];
+
+    // State holding bets and custom odds
+    let gameState = initialScores.map(item => ({
+      score: item.score,
+      odds: item.odds,
+      bet: 0
+    }));
+
+    // Start App
+    window.onload = function() {
+      renderGrid();
+      populateDropdown();
+      calculateSummary();
+    };
+
+    // Render original football score calculator grid
+    function renderGrid() {
+      const gridContainer = document.getElementById('scoresGrid');
+      gridContainer.innerHTML = '';
+
+      gameState.forEach((item, index) => {
+        const card = document.createElement('div');
+        card.className = `relative bg-slate-950 p-3.5 rounded-xl border transition-all duration-200 ${
+          item.bet > 0 
+            ? 'border-amber-400/80 shadow-[0_0_15px_rgba(245,158,11,0.15)] ring-1 ring-amber-400/30' 
+            : 'border-slate-800 hover:border-slate-700'
+        }`;
+
+        card.innerHTML = `
+          <!-- Locked Score Display -->
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs bg-slate-800/80 px-2 py-0.5 rounded text-white font-bold tracking-wider">${item.score}</span>
+            <span class="text-[10px] text-slate-500">ล็อกสกอร์</span>
+          </div>
+
+          <!-- Odds (Editable Option) -->
+          <div class="mb-2">
+            <label class="block text-[10px] text-slate-400 mb-0.5">ตัวคูณ (Odds):</label>
+            <input type="number" step="0.01" min="1" value="${item.odds}" 
+                   class="w-full bg-slate-900 text-xs text-amber-300 font-bold border border-slate-800 rounded px-1.5 py-1 focus:outline-none focus:border-amber-400 transition"
+                   onchange="updateOdds(${index}, this.value)">
+          </div>
+
+          <!-- Bet Amount Input -->
+          <div class="mb-2">
+            <label class="block text-[10px] text-slate-400 mb-0.5">ยอดเดิมพัน (บาท):</label>
+            <input type="number" min="0" value="${item.bet || ''}" placeholder="0"
+                   class="w-full bg-slate-900 text-xs text-white border border-slate-700 rounded px-1.5 py-1 focus:outline-none focus:border-amber-400 transition font-medium"
+                   oninput="updateBet(${index}, this.value)">
+          </div>
+
+          <!-- Interactive quick add helper -->
+          <div class="grid grid-cols-4 gap-1 mb-2">
+            <button onclick="addBetVal(${index}, 20)" class="text-[9px] py-0.5 bg-slate-900 hover:bg-slate-800 rounded border border-slate-800 text-slate-400">+20</button>
+            <button onclick="addBetVal(${index}, 50)" class="text-[9px] py-0.5 bg-slate-900 hover:bg-slate-800 rounded border border-slate-800 text-slate-400">+50</button>
+            <button onclick="addBetVal(${index}, 100)" class="text-[9px] py-0.5 bg-slate-900 hover:bg-slate-800 rounded border border-slate-800 text-slate-400">+100</button>
+            <button onclick="clearBetVal(${index})" class="text-[9px] py-0.5 bg-rose-950/40 hover:bg-rose-950 text-rose-400 rounded border border-rose-900/50">ล้าง</button>
+          </div>
+
+          <!-- Live Card Math Status -->
+          <div class="border-t border-slate-900 pt-1.5 text-[10px] text-slate-400">
+            <div class="flex justify-between">
+              <span>ได้คืน:</span>
+              <span id="payout-label-${index}" class="text-slate-300 font-bold">0.00</span>
+            </div>
+            <div class="flex justify-between mt-0.5">
+              <span>กำไรสุทธิ:</span>
+              <span id="profit-label-${index}" class="font-bold">0.00</span>
+            </div>
+          </div>
+        `;
+
+        gridContainer.appendChild(card);
+      });
+    }
+
+    // Dynamic Updates
+    function updateOdds(index, val) {
+      const value = parseFloat(val);
+      if (!isNaN(value) && value > 0) {
+        gameState[index].odds = value;
+        calculateSummary();
+      }
+    }
+
+    function updateBet(index, val) {
+      let value = parseFloat(val);
+      if (isNaN(value) || value < 0) {
+        value = 0;
+      }
+      gameState[index].bet = value;
+      calculateSummary();
+    }
+
+    function addBetVal(index, valToAdd) {
+      const current = gameState[index].bet || 0;
+      gameState[index].bet = current + valToAdd;
+      renderGrid();
+      calculateSummary();
+    }
+
+    function clearBetVal(index) {
+      gameState[index].bet = 0;
+      renderGrid();
+      calculateSummary();
+    }
+
+    function updateMatchTitle() {
+      const home = document.getElementById('homeTeam').value.trim() || 'ทีมเหย้า';
+      const away = document.getElementById('awayTeam').value.trim() || 'ทีมเยือน';
+      document.getElementById('matchDisplayTitle').textContent = `${home} vs ${away}`;
+      populateDropdown(); // Refresh dropdown labels
+    }
+
+    // Population of dropdown with simulation options
+    function populateDropdown() {
+      const dropdown = document.getElementById('simulatedOutcome');
+      const selectedValue = dropdown.value; // Store currently selected if any
+      dropdown.innerHTML = '';
+
+      // Add a placeholder/first default option
+      const defaultOpt = document.createElement('option');
+      defaultOpt.value = 'default_none';
+      defaultOpt.textContent = '--- เลือกเพื่อดูผลทันที ---';
+      dropdown.appendChild(defaultOpt);
+
+      // Add all scores from grid
+      gameState.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.score;
+        opt.textContent = `สกอร์จบที่ [ ${item.score} ]`;
+        dropdown.appendChild(opt);
+      });
+
+      // Other Outcomes (Loss of all bets option)
+      const otherOpt = document.createElement('option');
+      otherOpt.value = 'other_score';
+      otherOpt.textContent = 'จบที่ผลลัพธ์อื่นนอกตาราง (เสียหมด)';
+      dropdown.appendChild(otherOpt);
+
+      // Re-apply select value if valid
+      if (selectedValue) {
+        dropdown.value = selectedValue;
+      }
+    }
+
+    // Quick bets application helper
+    function applyQuickBet() {
+      const quickVal = parseFloat(document.getElementById('quickBetAmount').value);
+      if (isNaN(quickVal) || quickVal < 0) {
+        return;
+      }
+      gameState.forEach(item => {
+        if (item.bet > 0) {
+          item.bet = quickVal;
+        }
+      });
+      renderGrid();
+      calculateSummary();
+    }
+
+    // Reset All Data fields to start over
+    function resetAll() {
+      gameState = initialScores.map(item => ({
+        score: item.score,
+        odds: item.odds,
+        bet: 0
+      }));
+      document.getElementById('homeTeam').value = 'ทีมเหย้า (เจ้าบ้าน)';
+      document.getElementById('awayTeam').value = 'ทีมเยือน';
+      document.getElementById('quickBetAmount').value = '';
+      document.getElementById('simulatedOutcome').value = 'default_none';
+      
+      updateMatchTitle();
+      renderGrid();
+      calculateSummary();
+    }
+
+    // Calculations & Dutching Report update
+    function calculateSummary() {
+      // Calculate total investment across all scores
+      const totalBet = gameState.reduce((sum, item) => sum + (item.bet || 0), 0);
+      document.getElementById('sumTotalBet').textContent = totalBet.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('totalInvestmentLabel').textContent = totalBet.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      
+      const selectedCount = gameState.filter(item => item.bet > 0).length;
+      document.getElementById('sumSelectedCount').textContent = selectedCount;
+
+      // Update inner card indicators
+      gameState.forEach((item, index) => {
+        const payout = item.bet * item.odds;
+        const profit = item.bet > 0 ? (payout - totalBet) : 0;
+        
+        // Payout text
+        const pLabel = document.getElementById(`payout-label-${index}`);
+        if (pLabel) pLabel.textContent = payout.toFixed(2);
+
+        // Net Profit text inside card
+        const prLabel = document.getElementById(`profit-label-${index}`);
+        if (prLabel) {
+          prLabel.textContent = (profit >= 0 ? '+' : '') + profit.toFixed(2);
+          if (profit > 0) {
+            prLabel.className = 'font-bold text-emerald-400';
+          } else if (profit < 0) {
+            prLabel.className = 'font-bold text-rose-500';
+          } else {
+            prLabel.className = 'font-bold text-slate-500';
+          }
+        }
+      });
+
+      // Update Simulated Results Area
+      const selectedOutcome = document.getElementById('simulatedOutcome').value;
+      const simResultBox = document.getElementById('simResultBox');
+      const emptySimMessage = document.getElementById('emptySimMessage');
+      const activeSimDetails = document.getElementById('activeSimDetails');
+
+      if (selectedOutcome === 'default_none' || selectedOutcome === '') {
+        emptySimMessage.classList.remove('hidden');
+        activeSimDetails.classList.add('hidden');
+        simResultBox.className = "bg-slate-950/80 p-5 rounded-xl border border-slate-800 flex items-center justify-center min-h-[140px]";
+      } else {
+        emptySimMessage.classList.add('hidden');
+        activeSimDetails.classList.remove('hidden');
+
+        let winningItem = null;
+        let payout = 0;
+        let isWin = false;
+
+        if (selectedOutcome !== 'other_score') {
+          winningItem = gameState.find(item => item.score === selectedOutcome);
+          if (winningItem) {
+            payout = winningItem.bet * winningItem.odds;
+            isWin = winningItem.bet > 0;
+          }
+        }
+
+        const netProfit = payout - totalBet;
+        
+        // Update simulation panel text values
+        document.getElementById('simScoreLabel').textContent = selectedOutcome === 'other_score' ? 'อื่น ๆ' : selectedOutcome;
+        document.getElementById('simTotalBetVal').textContent = `${totalBet.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
+        document.getElementById('simPayoutVal').textContent = `${payout.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
+        
+        const simNetVal = document.getElementById('simNetVal');
+        simNetVal.textContent = `${(netProfit >= 0 ? '+' : '')}${netProfit.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
+
+        // Interactive dynamic color classes based on profitability
+        if (netProfit > 0) {
+          simNetVal.className = "text-xl font-black text-emerald-400";
+          simResultBox.className = "bg-emerald-950/20 p-5 rounded-xl border border-emerald-500/50 flex flex-col justify-between min-h-[140px] transition-all";
+        } else if (netProfit < 0) {
+          simNetVal.className = "text-xl font-black text-rose-500";
+          simResultBox.className = "bg-rose-950/20 p-5 rounded-xl border border-rose-500/50 flex flex-col justify-between min-h-[140px] transition-all";
+        } else {
+          simNetVal.className = "text-xl font-black text-slate-300";
+          simResultBox.className = "bg-slate-950/80 p-5 rounded-xl border border-slate-700 flex flex-col justify-between min-h-[140px] transition-all";
+        }
+      }
+
+      // Generate the Dutching Profitability Report
+      const dutchingReport = document.getElementById('dutchingReport');
+      dutchingReport.innerHTML = '';
+
+      const activeBets = gameState.filter(item => item.bet > 0);
+      if (activeBets.length === 0) {
+        dutchingReport.innerHTML = `<p class="text-xs text-slate-500 text-center py-4 bg-slate-950/40 rounded-lg">กรุณากรอกเงินเดิมพันเพื่อดูสรุปแผน</p>`;
+        return;
+      }
+
+      activeBets.forEach(item => {
+        const payout = item.bet * item.odds;
+        const netProfit = payout - totalBet;
+        const roi = totalBet > 0 ? ((netProfit / totalBet) * 100).toFixed(0) : 0;
+        
+        const reportRow = document.createElement('div');
+        reportRow.className = "bg-slate-950/70 p-2.5 rounded-lg border border-slate-850 flex items-center justify-between text-xs";
+        
+        const badgeColor = netProfit > 0 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20';
+
+        reportRow.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-white bg-slate-800 px-1.5 py-0.5 rounded text-[10px]">${item.score}</span>
+            <span class="text-slate-400">เดิมพัน: <strong class="text-slate-300">${item.bet}฿</strong></span>
+          </div>
+          <div class="text-right">
+            <span class="font-bold block ${netProfit > 0 ? 'text-emerald-400' : 'text-rose-400'}">
+              ${netProfit >= 0 ? '+' : ''}${netProfit.toFixed(1)} ฿
+            </span>
+            <span class="text-[9px] text-slate-500">ROI: ${roi}%</span>
+          </div>
+        `;
+        dutchingReport.appendChild(reportRow);
+      });
+    }
+  </script>
+</body>
+</html>
