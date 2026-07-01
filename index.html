@@ -29,6 +29,35 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen py-6 px-4">
 
+  <!-- Processing Modal Overlay -->
+  <div id="loadingModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-slate-900 border border-slate-700/60 rounded-2xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl">
+      <div class="relative w-20 h-20 mx-auto mb-6">
+        <div class="absolute inset-0 rounded-full border-4 border-amber-500/20"></div>
+        <div class="absolute inset-0 rounded-full border-4 border-t-amber-500 animate-spin"></div>
+        <div class="absolute inset-0 flex items-center justify-center text-amber-400">
+          <i class="fa-solid fa-brain text-2xl animate-pulse"></i>
+        </div>
+      </div>
+      <h3 class="text-lg font-bold text-white mb-2" id="loadingStatusTitle">กำลังประมวลผลรูปภาพ...</h3>
+      <p class="text-sm text-slate-400 mb-4" id="loadingStatusDesc">AI กำลังวิเคราะห์ข้อมูลตารางคะแนนและถอดตัวคูณอัตราจ่าย</p>
+      <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+        <div class="bg-amber-500 h-1.5 rounded-full animate-pulse w-3/4 mx-auto"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Alert Toast notification -->
+  <div id="toastNotification" class="fixed top-6 right-6 z-50 transform transition-all duration-300 translate-y-[-100px] opacity-0 pointer-events-none">
+    <div class="bg-slate-900 border-l-4 border-emerald-500 text-white px-5 py-3.5 rounded-r-xl shadow-2xl flex items-center gap-3">
+      <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+      <div>
+        <p class="font-bold text-sm" id="toastTitle">สำเร็จ</p>
+        <p class="text-xs text-slate-400" id="toastMessage">อัปเดตอัตราจ่ายเรียบร้อย</p>
+      </div>
+    </div>
+  </div>
+
   <div class="max-w-6xl mx-auto">
     
     <!-- HEADER PANEL -->
@@ -39,7 +68,7 @@
             <i class="fa-solid fa-calculator-combined text-yellow-400"></i>
             โปรแกรมคำนวณคะแนนที่ถูกต้อง (Correct Score Plan)
           </h1>
-          <p class="text-slate-400 text-sm mt-1">เครื่องมือคำนวณกระจายความเสี่ยง กำไร-ขาดทุนสุทธิ และอัตราต่อรองฟุตบอลแบบเรียลไทม์</p>
+          <p class="text-slate-400 text-sm mt-1">เครื่องมือคำนวณกระจายความเสี่ยง กำไร-ขาดทุนสุทธิ และอิมพอร์ตตารางราคาด้วยระบบ AI อัจฉริยะ</p>
         </div>
         <div class="flex items-center gap-2 bg-slate-950/60 p-1.5 rounded-lg border border-slate-800">
           <button onclick="resetAll()" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 transition text-white rounded-md text-sm font-medium flex items-center gap-2">
@@ -77,6 +106,48 @@
         </div>
       </div>
     </header>
+
+    <!-- AI DRAG & DROP IMPORT PANEL -->
+    <section class="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 mb-6 shadow-xl">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="inline-flex items-center justify-center bg-amber-500/10 text-amber-400 w-8 h-8 rounded-lg border border-amber-500/20">
+          <i class="fa-solid fa-wand-magic-sparkles text-sm animate-pulse"></i>
+        </span>
+        <div>
+          <h2 class="font-bold text-sm text-slate-200">อัปเดตอัตราจ่ายด่วนด้วยระบบ AI สแกนภาพ</h2>
+          <p class="text-[11px] text-slate-400">ลากและวางภาพถ่ายตารางราคา หรืออัพโหลดรูปภาพ เพื่อสแกนตัวคูณทั้งหมดลงตารางทันที</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+        <!-- Dropzone Area -->
+        <div class="md:col-span-2">
+          <div id="dropzone" 
+               class="border-2 border-dashed border-slate-700 hover:border-amber-500/60 bg-slate-950/50 hover:bg-slate-900/40 rounded-xl p-5 text-center cursor-pointer transition duration-200 flex flex-col items-center justify-center group"
+               ondragover="handleDragOver(event)"
+               ondragleave="handleDragLeave(event)"
+               ondrop="handleDrop(event)"
+               onclick="triggerFileInput()">
+            
+            <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+            
+            <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-500 group-hover:text-amber-400 mb-2 transition duration-200"></i>
+            <p class="text-xs font-semibold text-slate-300 group-hover:text-white transition">ลากรูปภาพมาวางที่นี่ หรือ <span class="text-amber-400 underline">คลิกเพื่อเลือกไฟล์</span></p>
+            <p class="text-[10px] text-slate-500 mt-1">รองรับไฟล์ PNG, JPG (ระบบสแกนตารางราคาในส่วน "คะแนนที่ถูกต้อง" ให้คุณอัตโนมัติ)</p>
+          </div>
+        </div>
+
+        <!-- Mini Preview or tips -->
+        <div class="bg-slate-950/40 border border-slate-800/80 rounded-xl p-4 h-full flex flex-col justify-center">
+          <h3 class="text-xs font-bold text-slate-400 mb-1 flex items-center gap-1.5">
+            <i class="fa-solid fa-lightbulb text-amber-400"></i> ทริคในการสแกนรูปภาพ
+          </h3>
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            ถ่ายภาพหรือแคปเจอร์ตารางราคาเฉพาะหัวข้อ <strong>"คะแนนที่ถูกต้อง"</strong> ให้ติดตัวหนังสือสกอร์ เช่น 1:0, 2:3 และอัตราจ่ายด้านล่างอย่างชัดเจน เพื่อให้สแกนได้แม่นยำที่สุดครับ
+          </p>
+        </div>
+      </div>
+    </section>
 
     <!-- LIVE MATCH STATUS BAR -->
     <div class="bg-slate-900 border border-slate-800 px-6 py-3.5 rounded-xl mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -215,45 +286,45 @@
         คำอธิบายการทำงานและเครื่องมือในการคำนวณ
       </h3>
       <ul class="text-xs text-slate-400 space-y-2 list-disc pl-5">
-        <li><strong>การแก้ไขข้อมูล:</strong> คุณสามารถแก้ไขอัตราจ่าย (Odds) ได้ตามต้องการหากราคาตามเว็ปไซค์ของคุณมีการปรับเปลี่ยน</li>
-        <li><strong>การวิเคราะห์ความคุ้มค่าแบบกระจายสกอร์ (Dutching):</strong> เมื่อคุณใส่เดิมพันหลายช่อง ระบบจะนำค่าใช้จ่ายทั้งหมดมารวมกัน และแสดงในแต่ละกล่องว่า "หากออกสกอร์นี้ จะเหลือกำไรสุทธิเท่าไหร่หลังหักลบยอดของช่องอื่นๆ ไปแล้ว" ซึ่งจะช่วยให้คุณมองเห็นจุดบอดที่ไม่ทำกำไรทันที</li>
-        <li><strong>การจำลองผลบอลจริง:</strong> สามารถกดสลับดูผลได้เพื่อดูว่าท้ายที่สุดแล้วหากออกสกอร์ใดสกอร์หนึ่ง คุณจะได้เงินเท่าไหร่ เพื่อเป็นไปตามเป้าหมายแผนงาน</li>
+        <li><strong>การสแกนด้วยภาพ:</strong> ระบบ AI จะอ่านตัวเลขของอัตราต่อรองของแต่ละสกอร์ฟุตบอลบนรูปภาพแล้วอัปเดตช่องข้อมูล "ตัวคูณ (Odds)" ให้อัตโนมัติในพริบตาเดียว</li>
+        <li><strong>การแก้ไขข้อมูลด้วยตนเอง:</strong> คุณยังคงสามารถเปลี่ยนข้อมูลช่องตัวคูณ (Odds) เองได้ตลอดเวลาโดยการคลิกที่กล่องตัวคูณของผลสกอร์นั้น ๆ</li>
+        <li><strong>การวิเคราะห์กระจายความคุ้มค่า (Dutching Profit):</strong> เมื่อใส่เดิมพันในช่องต่าง ๆ ยอดลงทุนทั้งหมดจะถูกคำนวณเพื่อหักลบยอดหากคุณเกิดความสูญเสียในช่องอื่น ๆ ทราบความคุ้มค่าล่วงหน้าอย่างละเอียด</li>
       </ul>
     </footer>
 
   </div>
 
   <script>
-    // Initial Data updated accurately based on user's second uploaded image (image_727486.png)
+    // Updated starting data aligned exactly with the latest uploaded image (image_09a379.png)
     const initialScores = [
       // Row 1
-      { score: '0:0', odds: 10.0 },
-      { score: '0:1', odds: 9.55 },
-      { score: '0:2', odds: 18.1 },
-      { score: '0:3', odds: 58.6 },
+      { score: '0:0', odds: 8.74 },
+      { score: '0:1', odds: 19.0 },
+      { score: '0:2', odds: 94.6 },
+      { score: '0:3', odds: 225.1 },
       { score: '0:4', odds: 225.1 },
-      { score: '1:0', odds: 7.6 },   // Updated from 7.7
-      { score: '1:1', odds: 5.77 },
-      { score: '1:2', odds: 10.9 },
-      { score: '1:3', odds: 34.3 },  // Updated from 32.5
-      { score: '1:4', odds: 120.0 },
-      { score: '2:0', odds: 11.0 },
-      { score: '2:1', odds: 7.8 },   // Updated from 9.50
-      { score: '2:2', odds: 11.8 },  // Updated from 14.00
+      { score: '1:0', odds: 4.75 },
+      { score: '1:1', odds: 9.55 },
+      { score: '1:2', odds: 43.3 },
+      { score: '1:3', odds: 225.1 },
+      { score: '1:4', odds: 250.0 },
+      { score: '2:0', odds: 4.72 },
+      { score: '2:1', odds: 9.0 },
+      { score: '2:2', odds: 34.3 },
       // Row 2
-      { score: '2:3', odds: 40.0 },
-      { score: '2:4', odds: 145.0 },
-      { score: '3:0', odds: 23.0 },
-      { score: '3:1', odds: 16.0 },
-      { score: '3:2', odds: 22.6 },
-      { score: '3:3', odds: 49.6 },  // Updated from 45.1
-      { score: '3:4', odds: 180.1 },
-      { score: '4:0', odds: 49.6 },
-      { score: '4:1', odds: 37.9 },
-      { score: '4:2', odds: 55.0 },
-      { score: '4:3', odds: 103.6 },
-      { score: '4:4', odds: 175.6 }, // Added from new image
-      { score: 'อื่นๆ', odds: 40.0 }  // Added from new image
+      { score: '2:3', odds: 195.0 },
+      { score: '2:4', odds: 250.0 },
+      { score: '3:0', odds: 7.0 },
+      { score: '3:1', odds: 14.0 },
+      { score: '3:2', odds: 49.6 },
+      { score: '3:3', odds: 121.6 },
+      { score: '3:4', odds: 225.1 },
+      { score: '4:0', odds: 12.7 },
+      { score: '4:1', odds: 28.9 },
+      { score: '4:2', odds: 105.0 },
+      { score: '4:3', odds: 193.6 },
+      { score: '4:4', odds: 216.1 },
+      { score: 'อื่นๆ', odds: 15.5 }
     ];
 
     // State holding bets and custom odds
@@ -270,7 +341,7 @@
       calculateSummary();
     };
 
-    // Render original football score calculator grid
+    // Render football score calculator grid
     function renderGrid() {
       const gridContainer = document.getElementById('scoresGrid');
       gridContainer.innerHTML = '';
@@ -329,6 +400,210 @@
 
         gridContainer.appendChild(card);
       });
+    }
+
+    // Drag & Drop Handler Functions
+    function handleDragOver(e) {
+      e.preventDefault();
+      const zone = document.getElementById('dropzone');
+      zone.classList.add('border-amber-400', 'bg-slate-900/60');
+    }
+
+    function handleDragLeave(e) {
+      const zone = document.getElementById('dropzone');
+      zone.classList.remove('border-amber-400', 'bg-slate-900/60');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      const zone = document.getElementById('dropzone');
+      zone.classList.remove('border-amber-400', 'bg-slate-900/60');
+      
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        processFile(files[0]);
+      }
+    }
+
+    function triggerFileInput() {
+      document.getElementById('fileInput').click();
+    }
+
+    function handleFileSelect(e) {
+      const files = e.target.files;
+      if (files.length > 0) {
+        processFile(files[0]);
+      }
+    }
+
+    function processFile(file) {
+      if (!file.type.startsWith('image/')) {
+        showToast('ผิดพลาด', 'กรุณาอัปโหลดรูปภาพเท่านั้น', 'rose-500', 'fa-solid fa-triangle-exclamation');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64Data = e.target.result.split(',')[1];
+        const mimeType = file.type;
+        // Trigger Gemini API call
+        analyseOddsWithAI(base64Data, mimeType);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Gemini API Request with Exponential Backoff
+    async function analyseOddsWithAI(base64Data, mimeType) {
+      showLoading(true, 'กำลังสแกนรูปภาพตารางอัตราต่อรอง...', 'AI กำลังประมวลผลข้อมูลตัวคูณอย่างรอบคอบ');
+
+      const apiKey = ""; // Set dynamically in execution environment
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+      
+      const systemPrompt = "คุณคือบอทวิเคราะห์ตารางอัตราต่อรองคะแนนที่ถูกต้อง (Correct Score) หน้าที่ของคุณคือสแกนรูปภาพที่ส่งไป และนำสกอร์คู่กับตัวคูณ (Odds) ที่อยู่ด้านใต้สกอร์นั้นๆ ส่งคืนกลับมาอย่างถูกต้องในรูปแบบ JSON ห้ามนำคำภาษาไทยหรือข้อความอื่นตอบกลับมานอกจากผลลัพธ์ JSON";
+      
+      const userMessageText = "Please extract the correct score list and their corresponding multiplier odds from this image. The layout has score headings (e.g., '0:0', '0:1', '2:3', 'อื่นๆ') in the top row cells and their decimal odds (e.g., '8.74', '19', '15.5') directly beneath them in the same column. Capture every available score and odd accurately.";
+
+      // Define Schema for Structured JSON response
+      const responseSchema = {
+        type: "OBJECT",
+        properties: {
+          scores: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                score: { type: "STRING", description: "สกอร์เช่น 0:0, 1:2, 2:1, อื่นๆ เป็นต้น" },
+                odds: { type: "NUMBER", description: "ตัวเลขตัวคูณอัตราจ่าย เช่น 8.74, 15.5, 43.3" }
+              },
+              required: ["score", "odds"]
+            }
+          }
+        },
+        required: ["scores"]
+      };
+
+      const payload = {
+        contents: [{
+          role: "user",
+          parts: [
+            { text: userMessageText },
+            { inlineData: { mimeType: mimeType, data: base64Data } }
+          ]
+        }],
+        systemInstruction: {
+          parts: [{ text: systemPrompt }]
+        },
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: responseSchema
+        }
+      };
+
+      // Exponential Backoff Fetch
+      const maxRetries = 5;
+      let success = false;
+      let responseData = null;
+
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (textResponse) {
+              responseData = JSON.parse(textResponse);
+              success = true;
+              break;
+            }
+          }
+        } catch (err) {
+          // Silent failure for retry backoff
+        }
+
+        if (attempt < maxRetries - 1) {
+          // Delay calculates: 1s, 2s, 4s, 8s, 16s
+          const delayTime = Math.pow(2, attempt) * 1000;
+          await new Promise(res => setTimeout(res, delayTime));
+        }
+      }
+
+      showLoading(false);
+
+      if (success && responseData && responseData.scores) {
+        let updateCount = 0;
+        
+        // Loop through response items and map them correctly
+        responseData.scores.forEach(aiItem => {
+          // Clean the score key representation
+          let aiScore = aiItem.score.trim();
+          if (aiScore === "อื่น ๆ" || aiScore.includes("อื่น")) {
+            aiScore = "อื่นๆ";
+          }
+          
+          // Match against current gameState scores
+          const localItem = gameState.find(item => item.score === aiScore);
+          if (localItem && aiItem.odds && !isNaN(aiItem.odds)) {
+            localItem.odds = parseFloat(aiItem.odds);
+            updateCount++;
+          }
+        });
+
+        if (updateCount > 0) {
+          renderGrid();
+          calculateSummary();
+          showToast('สำเร็จ!', `สแกนพบอัตราต่อรองและอัปเดตแล้วทั้งหมด ${updateCount} ช่อง`, 'emerald-500', 'fa-solid fa-circle-check');
+        } else {
+          showToast('ไม่พบคู่ข้อมูล', 'AI ประมวลผลภาพได้สำเร็จแต่ไม่พบคู่ข้อมูลที่ตรงกับตาราง', 'amber-500', 'fa-solid fa-circle-exclamation');
+        }
+      } else {
+        // Ultimate User Friendly Error modal
+        showModalError();
+      }
+    }
+
+    // Modal display states
+    function showLoading(show, title = '', desc = '') {
+      const modal = document.getElementById('loadingModal');
+      if (show) {
+        document.getElementById('loadingStatusTitle').textContent = title;
+        document.getElementById('loadingStatusDesc').textContent = desc;
+        modal.classList.remove('hidden');
+      } else {
+        modal.classList.add('hidden');
+      }
+    }
+
+    function showModalError() {
+      showToast('ระบบสแกนล้มเหลว', 'ไม่สามารถเชื่อมต่อระบบวิเคราะห์ภาพได้ในขณะนี้ กรุณากรอกตัวคูณเอง หรือลองใหม่อีกครั้ง', 'rose-500', 'fa-solid fa-triangle-exclamation');
+    }
+
+    // Toast UI Notifications helper
+    function showToast(title, message, colorClass = 'emerald-500', iconClass = 'fa-solid fa-circle-check') {
+      const toast = document.getElementById('toastNotification');
+      const toastIcon = document.getElementById('toastIcon');
+      const toastTitle = document.getElementById('toastTitle');
+      const toastMessage = document.getElementById('toastMessage');
+
+      // Setup styles and content
+      toast.firstElementChild.className = `bg-slate-900 border-l-4 border-${colorClass} text-white px-5 py-3.5 rounded-r-xl shadow-2xl flex items-center gap-3`;
+      toastIcon.className = `${iconClass} text-${colorClass} text-lg`;
+      toastTitle.textContent = title;
+      toastMessage.textContent = message;
+
+      // Bring toast down
+      toast.classList.remove('translate-y-[-100px]', 'opacity-0', 'pointer-events-none');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      // Dismiss after 4 seconds
+      setTimeout(() => {
+        toast.classList.add('translate-y-[-100px]', 'opacity-0', 'pointer-events-none');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 4000);
     }
 
     // Dynamic Updates
